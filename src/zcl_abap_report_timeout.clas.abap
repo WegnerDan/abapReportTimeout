@@ -14,7 +14,8 @@ CLASS zcl_abap_report_timeout DEFINITION
 
     METHODS:
       constructor IMPORTING timeout_in_seconds TYPE i
-                            exit_immediately   TYPE abap_bool DEFAULT abap_false,
+                            exit_immediately   TYPE abap_bool DEFAULT abap_false
+                            start_immediately  TYPE abap_bool DEFAULT abap_true,
 
       set_timeout          IMPORTING timeout_in_seconds TYPE i         OPTIONAL,
 
@@ -62,7 +63,9 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
     set_timeout( timeout_in_seconds ).
     set_exit_immediately( exit_immediately ).
 
-    start( ).
+    IF start_immediately = abap_true.
+      start( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_exit_immediately.
