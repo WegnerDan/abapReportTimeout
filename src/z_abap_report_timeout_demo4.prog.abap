@@ -12,7 +12,9 @@ CLASS lcl_report DEFINITION CREATE PUBLIC.
       run.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA timeout_count TYPE i.
+    DATA:
+      timeout       TYPE REF TO zcl_abap_report_timeout,
+      timeout_count TYPE i.
     METHODS:
       handle_timeout_reached FOR EVENT timeout_reached OF zcl_abap_report_timeout IMPORTING sender.
 ENDCLASS.
@@ -29,16 +31,20 @@ START-OF-SELECTION.
 
 CLASS lcl_report IMPLEMENTATION.
   METHOD run.
-    NEW zcl_abap_report_timeout( timeout_in_seconds = ptimeout
-                                 exit_immediately   = abap_false ).
+    timeout = NEW #( timeout_in_seconds = ptimeout
+                     exit_immediately   = abap_false ).
+
+    SET HANDLER handle_timeout_reached FOR timeout.
 
     WRITE |Timeout in { ptimeout } seconds|.
   ENDMETHOD.
 
   METHOD handle_timeout_reached.
     timeout_count = timeout_count + 1.
-    IF timeout_count > 1.
+    IF timeout_count > 2.
       sender->cancel( ).
+      MESSAGE 'Enough already, goodbye' TYPE 'S'.
+      sender->leave_program( ).
     ENDIF.
   ENDMETHOD.
 

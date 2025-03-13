@@ -23,10 +23,13 @@ CLASS zcl_abap_report_timeout DEFINITION
 
       start,
 
-      cancel.
+      cancel,
+
+      leave_program.
 
   PROTECTED SECTION.
     DATA:
+      is_cancelled    TYPE abap_bool,
       timestamp_start TYPE timestampl,
       timestamp_end   TYPE timestampl.
 
@@ -34,8 +37,6 @@ CLASS zcl_abap_report_timeout DEFINITION
       handle_timer_finished FOR EVENT finished OF cl_gui_timer,
 
       calculate_elapsed_seconds,
-
-      exit_report,
 
       popup_stay_or_exit IMPORTING !titlebar          TYPE clike     DEFAULT TEXT-001
                                    text_question      TYPE clike     DEFAULT TEXT-002
@@ -84,18 +85,27 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
       GET TIME STAMP FIELD timestamp_start.
     ENDIF.
 
+    is_cancelled = abap_false.
+
     timer->run( ).
   ENDMETHOD.
 
   METHOD cancel.
+    is_cancelled = abap_true.
+
     timer->cancel( ).
   ENDMETHOD.
 
   METHOD handle_timer_finished.
+    calculate_elapsed_seconds( ).
+
     RAISE EVENT timeout_reached.
+    IF is_cancelled = abap_true.
+      RETURN.
+    ENDIF.
 
     IF exit_immediately = abap_true.
-      exit_report( ).
+      leave_program( ).
       RETURN.
     ENDIF.
 
@@ -104,7 +114,7 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
       WHEN '1'.
         start( ).
       WHEN '2'.
-        exit_report( ).
+        leave_program( ).
       WHEN OTHERS.
     ENDCASE.
   ENDMETHOD.
@@ -114,7 +124,7 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
     elapsed_seconds = timestamp_end - timestamp_start.
   ENDMETHOD.
 
-  METHOD exit_report.
+  METHOD leave_program.
     calculate_elapsed_seconds( ).
     LEAVE PROGRAM.
   ENDMETHOD.
