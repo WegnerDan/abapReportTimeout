@@ -6,6 +6,7 @@ CLASS zcl_abap_report_timeout DEFINITION
     DATA:
       timeout_in_seconds TYPE i                   READ-ONLY,
       exit_immediately   TYPE abap_bool           READ-ONLY,
+      elapsed_seconds    TYPE decfloat34          READ-ONLY,
       timer              TYPE REF TO cl_gui_timer READ-ONLY.
 
     EVENTS:
@@ -15,7 +16,7 @@ CLASS zcl_abap_report_timeout DEFINITION
       constructor IMPORTING timeout_in_seconds TYPE i
                             exit_immediately   TYPE abap_bool DEFAULT abap_false,
 
-      set_timeout          IMPORTING timeout_in_seconds TYPE i OPTIONAL,
+      set_timeout          IMPORTING timeout_in_seconds TYPE i         OPTIONAL,
 
       set_exit_immediately IMPORTING exit_immediately   TYPE abap_bool DEFAULT abap_false,
 
@@ -24,8 +25,14 @@ CLASS zcl_abap_report_timeout DEFINITION
       cancel.
 
   PROTECTED SECTION.
+    DATA:
+      timestamp_start TYPE timestampl,
+      timestamp_end   TYPE timestampl.
+
     METHODS:
       handle_timer_finished FOR EVENT finished OF cl_gui_timer,
+
+      calculate_elapsed_seconds,
 
       exit_report,
 
@@ -55,7 +62,7 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
     set_timeout( timeout_in_seconds ).
     set_exit_immediately( exit_immediately ).
 
-    timer->run( ).
+    start( ).
   ENDMETHOD.
 
   METHOD set_exit_immediately.
@@ -70,6 +77,10 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD start.
+    IF timestamp_start IS INITIAL.
+      GET TIME STAMP FIELD timestamp_start.
+    ENDIF.
+
     timer->run( ).
   ENDMETHOD.
 
@@ -95,7 +106,13 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
 
+  METHOD calculate_elapsed_seconds.
+    GET TIME STAMP FIELD timestamp_end.
+    elapsed_seconds = timestamp_end - timestamp_start.
+  ENDMETHOD.
+
   METHOD exit_report.
+    calculate_elapsed_seconds( ).
     LEAVE PROGRAM.
   ENDMETHOD.
 
