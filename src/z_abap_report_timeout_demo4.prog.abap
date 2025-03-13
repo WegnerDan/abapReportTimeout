@@ -20,7 +20,8 @@ CLASS lcl_report DEFINITION CREATE PUBLIC.
 ENDCLASS.
 
 PARAMETERS:
-  ptimeout TYPE i DEFAULT 3.
+  ptimeout TYPE i DEFAULT 3,
+  prepeats TYPE i DEFAULT 2.
 
 
 
@@ -41,7 +42,7 @@ CLASS lcl_report IMPLEMENTATION.
 
   METHOD handle_timeout_reached.
     timeout_count = timeout_count + 1.
-    IF timeout_count > 2.
+    IF timeout_count > prepeats.
       sender->cancel( ).
       MESSAGE 'Enough already, goodbye' TYPE 'S'.
       sender->leave_program( ).
