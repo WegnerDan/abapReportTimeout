@@ -8,21 +8,26 @@ CLASS zcl_abap_report_timeout DEFINITION
       exit_immediately   TYPE abap_bool           READ-ONLY,
       timer              TYPE REF TO cl_gui_timer READ-ONLY.
 
+    EVENTS:
+      timeout_reached.
+
     METHODS:
       constructor IMPORTING timeout_in_seconds TYPE i
                             exit_immediately   TYPE abap_bool DEFAULT abap_false,
 
-      set_timeout          IMPORTING timeout_in_seconds TYPE i,
+      set_timeout          IMPORTING timeout_in_seconds TYPE i OPTIONAL,
 
-      set_exit_immediately IMPORTING exit_immediately   TYPE abap_bool DEFAULT abap_false.
+      set_exit_immediately IMPORTING exit_immediately   TYPE abap_bool DEFAULT abap_false,
+
+      start,
+
+      cancel.
 
   PROTECTED SECTION.
     METHODS:
       handle_timer_finished FOR EVENT finished OF cl_gui_timer,
 
       exit_report,
-
-      repeat_timer,
 
       popup_stay_or_exit IMPORTING !titlebar          TYPE clike     DEFAULT TEXT-001
                                    text_question      TYPE clike     DEFAULT TEXT-002
@@ -58,11 +63,23 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_timeout.
-    me->timeout_in_seconds = timeout_in_seconds.
+    IF timeout_in_seconds IS SUPPLIED.
+      me->timeout_in_seconds = timeout_in_seconds.
+    ENDIF.
     timer->interval = timeout_in_seconds.
   ENDMETHOD.
 
+  METHOD start.
+    timer->run( ).
+  ENDMETHOD.
+
+  METHOD cancel.
+    timer->cancel( ).
+  ENDMETHOD.
+
   METHOD handle_timer_finished.
+    RAISE EVENT timeout_reached.
+
     IF exit_immediately = abap_true.
       exit_report( ).
       RETURN.
@@ -71,7 +88,7 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
     popup_stay_or_exit( IMPORTING answer = DATA(popup_answer) ).
     CASE popup_answer.
       WHEN '1'.
-        repeat_timer( ).
+        start( ).
       WHEN '2'.
         exit_report( ).
       WHEN OTHERS.
@@ -80,10 +97,6 @@ CLASS zcl_abap_report_timeout IMPLEMENTATION.
 
   METHOD exit_report.
     LEAVE PROGRAM.
-  ENDMETHOD.
-
-  METHOD repeat_timer.
-    timer->run( ).
   ENDMETHOD.
 
   METHOD popup_stay_or_exit.
